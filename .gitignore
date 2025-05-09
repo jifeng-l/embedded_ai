@@ -31,7 +31,7 @@ ENV/
 *.swo
 
 # Logs
-*.log
+# *.log
 
 # Model files
 # *.tflite

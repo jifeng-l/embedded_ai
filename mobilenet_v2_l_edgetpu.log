@@ -1,0 +1,13 @@
+Edge TPU Compiler version 16.0.384591198
+Input: /home/lijifeng/embedded_ai/model/mobilenet_v2_l.tflite
+Output: mobilenet_v2_l_edgetpu.tflite
+
+Operator                       Count      Status
+
+AVERAGE_POOL_2D                1          Mapped to Edge TPU
+DEPTHWISE_CONV_2D              12         Mapped to Edge TPU
+CONCATENATION                  3          Mapped to Edge TPU
+SOFTMAX                        1          Mapped to Edge TPU
+ADD                            13         Mapped to Edge TPU
+SPLIT                          3          Mapped to Edge TPU
+CONV_2D                        47         Mapped to Edge TPU

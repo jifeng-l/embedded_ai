@@ -1,0 +1,20 @@
+Edge TPU Compiler version 16.0.384591198
+Input: /home/lijifeng/embedded_ai/model/mobilenet_v3_int8.tflite
+Output: mobilenet_v3_int8_edgetpu.tflite
+
+Operator                       Count      Status
+
+HARD_SWISH                     19         Operation not supported
+RESHAPE                        1          More than one subgraph is not supported
+MEAN                           10         More than one subgraph is not supported
+SOFTMAX                        1          More than one subgraph is not supported
+PAD                            4          More than one subgraph is not supported
+ADD                            6          More than one subgraph is not supported
+ADD                            1          Mapped to Edge TPU
+MUL                            18         More than one subgraph is not supported
+MUL                            1          Mapped to Edge TPU
+QUANTIZE                       1          Operation is otherwise supported, but not mapped due to some unspecified limitation
+QUANTIZE                       1          Mapped to Edge TPU
+CONV_2D                        42         More than one subgraph is not supported
+CONV_2D                        1          Mapped to Edge TPU
+DEPTHWISE_CONV_2D              11         More than one subgraph is not supported
