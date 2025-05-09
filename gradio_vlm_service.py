@@ -243,10 +243,18 @@ def run_image_encoder(image_rgb: np.ndarray,
     Resize an RGB image to the required shape and type (float32),
     run through the Edge TPU feature extractor, and return the embedding.
     """
-    interpreter = Interpreter(
-        model_path=model_path,
-        experimental_delegates=[load_delegate("libedgetpu.so.1")]
-    )
+    # interpreter = Interpreter(
+    #     model_path=model_path,
+    #     experimental_delegates=[load_delegate("libedgetpu.so.1")]
+    # )
+    try:
+        interpreter = Interpreter(
+            model_path=model_path,
+            experimental_delegates=[load_delegate("libedgetpu.so.1")]
+        )
+    except Exception:
+        print("⚠️ Edge TPU not available, fallback to CPU.")
+        interpreter = Interpreter(model_path=model_path)
     interpreter.allocate_tensors()
     inp_det = interpreter.get_input_details()[0]
     out_det = interpreter.get_output_details()[0]
@@ -282,10 +290,18 @@ def run_text_encoder(text: str,
     )
     input_ids = tokens["input_ids"].astype(np.int32)
 
-    interp = Interpreter(
-        model_path=model_path,
-        experimental_delegates=[load_delegate("libedgetpu.so.1")]
-    )
+    # interp = Interpreter(
+    #     model_path=model_path,
+    #     experimental_delegates=[load_delegate("libedgetpu.so.1")]
+    # )
+    try:
+        interp = Interpreter(
+            model_path=model_path,
+            experimental_delegates=[load_delegate("libedgetpu.so.1")]
+        )
+    except Exception:
+        print("⚠️ Edge TPU not available, fallback to CPU.")
+        interp = Interpreter(model_path=model_path)
     interp.allocate_tensors()
     inp_det = interp.get_input_details()[0]
     out_det = interp.get_output_details()[0]
