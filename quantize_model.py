@@ -2,13 +2,14 @@
 
 import tensorflow as tf
 import numpy as np
+import os
 
 # --- Select model ---
-MODEL_NAME = "mobilenet_v3_small"  # Options: mobilenet_v3_small, mobilenet_v3_large
-OUTPUT_PATH = f"{MODEL_NAME}_int8.tflite"
+MODEL_NAME = "mobilenet_v3"  # Options: mobilenet_v3_small, mobilenet_v3_large
+OUTPUT_PATH = os.path.join("model", f"{MODEL_NAME}_int8.tflite")
 
 # --- 1. Load pretrained Keras model ---
-if MODEL_NAME == "mobilenet_v3_small":
+if MODEL_NAME == "mobilenet_v3":
     model = tf.keras.applications.MobileNetV3Small(
         input_shape=(224, 224, 3),
         weights="imagenet",
@@ -24,7 +25,7 @@ else:
     raise ValueError(f"Unknown model: {MODEL_NAME}")
 
 # --- 2. Save as a SavedModel format (required by converter) ---
-model.save("saved_model")
+model.save(os.path.join("model", "saved_model"))
 
 # --- 3. Create representative dataset function ---
 def representative_data_gen():
@@ -33,7 +34,7 @@ def representative_data_gen():
         yield [dummy_input]
 
 # --- 4. Create converter and quantize ---
-converter = tf.lite.TFLiteConverter.from_saved_model("saved_model")
+converter = tf.lite.TFLiteConverter.from_saved_model(os.path.join("model", "saved_model"))
 
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
 converter.representative_dataset = representative_data_gen
@@ -46,6 +47,7 @@ converter.inference_output_type = tf.uint8
 tflite_model = converter.convert()
 
 # --- 5. Save output ---
+os.makedirs("model", exist_ok=True)  # Ensure model directory exists
 with open(OUTPUT_PATH, "wb") as f:
     f.write(tflite_model)
 
