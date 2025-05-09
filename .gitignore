@@ -45,4 +45,7 @@ ENV/
 
 # System
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Submodules
+llama.cpp/ 
