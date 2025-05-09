@@ -34,7 +34,7 @@ ENV/
 *.log
 
 # Model files
-*.tflite
+# *.tflite
 *.bin
 *.pt
 *.pth
