@@ -195,16 +195,18 @@ import gradio as gr
 from tflite_runtime.interpreter import Interpreter, load_delegate
 from transformers import AutoTokenizer
 from llama_cpp import Llama  # pip install llama-cpp-python
+from image_encoder import run_image_encoder
+from text_encoder import run_text_encoder
 
 # ——— 0) Compression setup ———
 # We project the original embeddings into a lower-dimensional space (e.g., 16 dims)
 COMPRESSED_DIM = 16
 np.random.seed(0)
-# Image: 1280 → COMPRESSED_DIM
-W_img = (np.random.randn(COMPRESSED_DIM, 1280) * 0.1).astype(np.float32)
+# Image: 1408 → COMPRESSED_DIM
+W_img = (np.random.randn(COMPRESSED_DIM, 1408) * 0.1).astype(np.float32)
 b_img = np.zeros(COMPRESSED_DIM, dtype=np.float32)
-# Text: 384 → COMPRESSED_DIM
-W_txt = (np.random.randn(COMPRESSED_DIM, 384) * 0.1).astype(np.float32)
+# Text: 64 → COMPRESSED_DIM
+W_txt = (np.random.randn(COMPRESSED_DIM, 64) * 0.1).astype(np.float32)
 b_txt = np.zeros(COMPRESSED_DIM, dtype=np.float32)
 
 def compress_embedding(x: np.ndarray, W: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -236,79 +238,79 @@ def run_llm(prompt: str) -> str:
     )
     return resp["choices"][0]["text"]
 
-# ——— 2) Edge TPU image encoder ———
-def run_image_encoder(image_rgb: np.ndarray,
-                      model_path="1_edgetpu.tflite") -> np.ndarray:
-    """
-    Resize an RGB image to the required shape and type (float32),
-    run through the Edge TPU feature extractor, and return the embedding.
-    """
-    # interpreter = Interpreter(
-    #     model_path=model_path,
-    #     experimental_delegates=[load_delegate("libedgetpu.so.1")]
-    # )
-    try:
-        interpreter = Interpreter(
-            model_path=model_path,
-            experimental_delegates=[load_delegate("libedgetpu.so.1")]
-        )
-    except Exception:
-        print("⚠️ Edge TPU not available, fallback to CPU.")
-        interpreter = Interpreter(model_path=model_path)
-    interpreter.allocate_tensors()
-    inp_det = interpreter.get_input_details()[0]
-    out_det = interpreter.get_output_details()[0]
+# # ——— 2) Edge TPU image encoder ———
+# def run_image_encoder(image_rgb: np.ndarray,
+#                       model_path="1_edgetpu.tflite") -> np.ndarray:
+#     """
+#     Resize an RGB image to the required shape and type (float32),
+#     run through the Edge TPU feature extractor, and return the embedding.
+#     """
+#     # interpreter = Interpreter(
+#     #     model_path=model_path,
+#     #     experimental_delegates=[load_delegate("libedgetpu.so.1")]
+#     # )
+#     try:
+#         interpreter = Interpreter(
+#             model_path=model_path,
+#             experimental_delegates=[load_delegate("libedgetpu.so.1")]
+#         )
+#     except Exception:
+#         print("⚠️ Edge TPU not available, fallback to CPU.")
+#         interpreter = Interpreter(model_path=model_path)
+#     interpreter.allocate_tensors()
+#     inp_det = interpreter.get_input_details()[0]
+#     out_det = interpreter.get_output_details()[0]
 
-    H, W = inp_det["shape"][1], inp_det["shape"][2]
-    resized = cv2.resize(image_rgb, (W, H))
+#     H, W = inp_det["shape"][1], inp_det["shape"][2]
+#     resized = cv2.resize(image_rgb, (W, H))
 
-    # Normalize to [0,1] float32
-    input_data = resized.astype(np.float32) / 255.0
-    input_data = np.expand_dims(input_data, axis=0)  # [1, H, W, 3]
+#     # Normalize to [0,1] float32
+#     input_data = resized.astype(np.float32) / 255.0
+#     input_data = np.expand_dims(input_data, axis=0)  # [1, H, W, 3]
 
-    interpreter.set_tensor(inp_det["index"], input_data)
-    interpreter.invoke()
+#     interpreter.set_tensor(inp_det["index"], input_data)
+#     interpreter.invoke()
 
-    return interpreter.get_tensor(out_det["index"])[0]
+#     return interpreter.get_tensor(out_det["index"])[0]
 
-# ——— 3) Edge TPU text encoder ———
-tokenizer = AutoTokenizer.from_pretrained("google/mobilebert-uncased")
+# # ——— 3) Edge TPU text encoder ———
+# tokenizer = AutoTokenizer.from_pretrained("google/mobilebert-uncased")
 
-def run_text_encoder(text: str,
-                     model_path="2_edgetpu.tflite") -> np.ndarray:
-    """
-    Tokenize input text to max_length=384,
-    run through the Edge TPU TFLite encoder,
-    and return a 1D embedding vector.
-    """
-    tokens = tokenizer(
-        text,
-        return_tensors="np",
-        padding="max_length",
-        truncation=True,
-        max_length=384
-    )
-    input_ids = tokens["input_ids"].astype(np.int32)
+# def run_text_encoder(text: str,
+#                      model_path="2_edgetpu.tflite") -> np.ndarray:
+#     """
+#     Tokenize input text to max_length=384,
+#     run through the Edge TPU TFLite encoder,
+#     and return a 1D embedding vector.
+#     """
+#     tokens = tokenizer(
+#         text,
+#         return_tensors="np",
+#         padding="max_length",
+#         truncation=True,
+#         max_length=384
+#     )
+#     input_ids = tokens["input_ids"].astype(np.int32)
 
-    # interp = Interpreter(
-    #     model_path=model_path,
-    #     experimental_delegates=[load_delegate("libedgetpu.so.1")]
-    # )
-    try:
-        interp = Interpreter(
-            model_path=model_path,
-            experimental_delegates=[load_delegate("libedgetpu.so.1")]
-        )
-    except Exception:
-        print("⚠️ Edge TPU not available, fallback to CPU.")
-        interp = Interpreter(model_path=model_path)
-    interp.allocate_tensors()
-    inp_det = interp.get_input_details()[0]
-    out_det = interp.get_output_details()[0]
+#     # interp = Interpreter(
+#     #     model_path=model_path,
+#     #     experimental_delegates=[load_delegate("libedgetpu.so.1")]
+#     # )
+#     try:
+#         interp = Interpreter(
+#             model_path=model_path,
+#             experimental_delegates=[load_delegate("libedgetpu.so.1")]
+#         )
+#     except Exception:
+#         print("⚠️ Edge TPU not available, fallback to CPU.")
+#         interp = Interpreter(model_path=model_path)
+#     interp.allocate_tensors()
+#     inp_det = interp.get_input_details()[0]
+#     out_det = interp.get_output_details()[0]
 
-    interp.set_tensor(inp_det["index"], input_ids)
-    interp.invoke()
-    return interp.get_tensor(out_det["index"])[0]
+#     interp.set_tensor(inp_det["index"], input_ids)
+#     interp.invoke()
+#     return interp.get_tensor(out_det["index"])[0]
 
 # ——— 4) Combine embeddings into a short LLM prompt ———
 def combine_embedding_prompt(img_vec: np.ndarray,
@@ -318,8 +320,8 @@ def combine_embedding_prompt(img_vec: np.ndarray,
     Construct a vision-language instruction prompt using compressed embeddings.
     """
     # Truncate to full compressed dimension
-    img_sample = ", ".join(f"{v:.2f}" for v in img_vec)
-    txt_sample = ", ".join(f"{v:.2f}" for v in txt_vec)
+    img_sample = ", ".join(f"{v:.2f}" for v in img_vec.flatten())
+    txt_sample = ", ".join(f"{v:.2f}" for v in txt_vec.flatten())
 
     return f"""### System:
 You are a vision-language reasoning assistant. You receive as input:
@@ -368,8 +370,8 @@ def process_frame(frame_bgr: np.ndarray, prompt_text: str):
     txt_emb = compress_embedding(txt_emb_full, W_txt, b_txt)
 
     # Debug prints
-    print("✅ Compressed image embedding preview:", img_emb)
-    print("✅ Compressed text embedding preview:", txt_emb[:10])
+    # print("✅ Compressed image embedding preview:", img_emb)
+    # print("✅ Compressed text embedding preview:", txt_emb[:10])
 
     # 4) Build LLM prompt
     llm_prompt = combine_embedding_prompt(img_emb, txt_emb, prompt_text)
@@ -410,4 +412,4 @@ if __name__ == "__main__":
             outputs=[out_img, out_txt]
         )
 
-    demo.launch()
+    demo.launch(server_name="0.0.0.0", server_port=7860, share=True)

@@ -8,6 +8,8 @@ from sklearn.metrics import accuracy_score, classification_report
 
 from datasets import load_dataset
 from gradio_vlm_service import process_frame  # Your VLM inference function
+from PIL import Image
+
 
 # --- Parse LLM output to binary label ---
 def parse_match_from_llm_output(llm_out: str) -> int:
@@ -27,27 +29,24 @@ def evaluate_flickr30k(n_samples=100):
     total = min(n_samples, len(dataset))
 
     for _ in tqdm(range(total), desc="Evaluating"):
-        # 1. Sample an image-text pair (positive sample)
         sample = random.choice(dataset)
-        image_path = sample["image"]["path"]
-        text = random.choice(sample["sentences"])["raw"]
+        image_pil = sample["image"]
+        image = np.array(image_pil.convert("RGB"))
+        text = sample["caption"]
+        text = sample["caption"]
+        if isinstance(text, list):
+            text = random.choice(text)
         label = 1
 
-        # 2. Load image
-        image = cv2.imread(image_path)
-        if image is None:
-            print(f"[Warning] Failed to load image: {image_path}")
-            continue
-
-        # 3. Occasionally create a negative sample by replacing the text
         if random.random() < 0.5:
             label = 0
             other = random.choice(dataset)
-            while other["image"]["path"] == image_path:
+            while other["image"] == sample["image"]:
                 other = random.choice(dataset)
-            text = random.choice(other["sentences"])["raw"]
+            text = other["caption"]
+            if isinstance(text, list):
+                text = random.choice(text)
 
-        # 4. Inference
         _, llm_out = process_frame(image, text)
         pred = parse_match_from_llm_output(llm_out)
 
