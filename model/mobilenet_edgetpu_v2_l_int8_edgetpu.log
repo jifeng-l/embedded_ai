@@ -1,0 +1,13 @@
+Edge TPU Compiler version 16.0.384591198
+Input: ./model/mobilenet_edgetpu_v2_l_int8.tflite
+Output: mobilenet_edgetpu_v2_l_int8_edgetpu.tflite
+
+Operator                       Count      Status
+
+ADD                            13         Mapped to Edge TPU
+CONCATENATION                  3          Mapped to Edge TPU
+AVERAGE_POOL_2D                1          Mapped to Edge TPU
+CONV_2D                        46         Mapped to Edge TPU
+DEPTHWISE_CONV_2D              12         Mapped to Edge TPU
+QUANTIZE                       2          Mapped to Edge TPU
+SPLIT                          3          Mapped to Edge TPU
